@@ -1,6 +1,7 @@
 {
   "name": "xeno-validator",
   "version": "1.0.0",
+  "homepage": "https://xeno-snowy-nu.vercel.app",
   "description": "Transaction Data Validation & Processing Platform — Validate, clean, and process international transaction datasets with intelligent country-specific rules.",
   "main": "server.js",
   "scripts": {
