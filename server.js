@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { v4: uuidv4 } = require('uuid');
 
 const { parseCSV, writeCSV } = require('./src/processors/csvProcessor');
@@ -14,8 +15,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Ensure directories
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
-const OUTPUT_DIR = path.join(__dirname, 'output');
+const isVercel = process.env.VERCEL === '1';
+const UPLOAD_DIR = isVercel ? path.join(os.tmpdir(), 'uploads') : path.join(__dirname, 'uploads');
+const OUTPUT_DIR = isVercel ? path.join(os.tmpdir(), 'output') : path.join(__dirname, 'output');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
@@ -261,11 +263,15 @@ app.use((err, req, res, next) => {
 
 // ─── START ──────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log(`\n  ╔══════════════════════════════════════════╗`);
-  console.log(`  ║        XenoValidator is running!         ║`);
-  console.log(`  ║                                          ║`);
-  console.log(`  ║   Local:  http://localhost:${PORT}          ║`);
-  console.log(`  ║                                          ║`);
-  console.log(`  ╚══════════════════════════════════════════╝\n`);
-});
+if (!isVercel) {
+  app.listen(PORT, () => {
+    console.log(`\n  ╔══════════════════════════════════════════╗`);
+    console.log(`  ║        XenoValidator is running!         ║`);
+    console.log(`  ║                                          ║`);
+    console.log(`  ║   Local:  http://localhost:${PORT}          ║`);
+    console.log(`  ║                                          ║`);
+    console.log(`  ╚══════════════════════════════════════════╝\n`);
+  });
+}
+
+module.exports = app;
