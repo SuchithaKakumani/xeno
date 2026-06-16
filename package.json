@@ -1,0 +1,28 @@
+{
+  "name": "xeno-validator",
+  "version": "1.0.0",
+  "description": "Transaction Data Validation & Processing Platform — Validate, clean, and process international transaction datasets with intelligent country-specific rules.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "transaction",
+    "validation",
+    "csv",
+    "data-processing",
+    "phone-validation",
+    "data-cleaning"
+  ],
+  "author": "XenoValidator",
+  "license": "MIT",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "csv-parse": "^5.6.0",
+    "csv-stringify": "^6.5.2",
+    "express": "^4.21.1",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^11.0.3"
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "orderFields": {
+    "order_id": {
+      "type": "string",
+      "required": true,
+      "aliases": ["order_id", "orderid", "order_number", "order_no", "orderno"],
+      "unique": true,
+      "description": "Unique order identifier"
+    },
+    "order_date": {
+      "type": "date",
+      "required": true,
+      "aliases": ["order_date", "orderdate", "date", "transaction_date", "txn_date"],
+      "description": "Date of the order"
+    },
+    "order_time": {
+      "type": "time",
+      "required": false,
+      "aliases": ["order_time", "ordertime", "time", "transaction_time", "txn_time"],
+      "description": "Time of the order"
+    },
+    "customer_name": {
+      "type": "string",
+      "required": true,
+      "aliases": ["customer_name", "customername", "customer", "name", "buyer_name"],
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Customer full name"
+    },
+    "customer_email": {
+      "type": "email",
+      "required": false,
+      "aliases": ["customer_email", "email", "buyer_email", "email_address"],
+      "description": "Customer email address"
+    },
+    "customer_phone": {
+      "type": "phone",
+      "required": true,
+      "aliases": ["customer_phone", "phone", "phone_number", "mobile", "contact", "contact_number"],
+      "description": "Customer phone number"
+    },
+    "country_code": {
+      "type": "country",
+      "required": true,
+      "aliases": ["country_code", "country", "countrycode", "country_iso", "region"],
+      "description": "ISO 2-letter country code"
+    },
+    "shipping_address": {
+      "type": "string",
+      "required": false,
+      "aliases": ["shipping_address", "address", "delivery_address", "ship_to"],
+      "description": "Delivery address"
+    },
+    "order_status": {
+      "type": "enum",
+      "required": false,
+      "aliases": ["order_status", "status", "orderstatus"],
+      "allowedValues": ["pending", "confirmed", "shipped", "delivered", "cancelled", "returned", "refunded", "processing"],
+      "caseInsensitive": true,
+      "description": "Current order status"
+    }
+  },
+  "productFields": {
+    "product_id": {
+      "type": "string",
+      "required": true,
+      "aliases": ["product_id", "productid", "sku", "item_id", "item_code", "product_code"],
+      "description": "Unique product identifier or SKU"
+    },
+    "product_name": {
+      "type": "string",
+      "required": true,
+      "aliases": ["product_name", "productname", "item_name", "item", "product", "description"],
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Product name or description"
+    },
+    "quantity": {
+      "type": "integer",
+      "required": true,
+      "aliases": ["quantity", "qty", "units", "count", "qty_ordered"],
+      "min": 1,
+      "description": "Quantity ordered"
+    },
+    "unit_price": {
+      "type": "decimal",
+      "required": true,
+      "aliases": ["unit_price", "unitprice", "price", "rate", "item_price", "selling_price"],
+      "min": 0,
+      "maxDecimals": 2,
+      "description": "Price per unit"
+    },
+    "total_amount": {
+      "type": "decimal",
+      "required": false,
+      "aliases": ["total_amount", "total", "amount", "line_total", "subtotal", "row_total"],
+      "min": 0,
+      "maxDecimals": 2,
+      "description": "Total amount (quantity × unit_price)"
+    },
+    "discount": {
+      "type": "decimal",
+      "required": false,
+      "aliases": ["discount", "discount_amount", "disc", "discount_value"],
+      "min": 0,
+      "maxDecimals": 2,
+      "description": "Discount applied"
+    },
+    "tax": {
+      "type": "decimal",
+      "required": false,
+      "aliases": ["tax", "tax_amount", "gst", "vat"],
+      "min": 0,
+      "maxDecimals": 2,
+      "description": "Tax amount"
+    },
+    "currency": {
+      "type": "currency",
+      "required": false,
+      "aliases": ["currency", "currency_code", "cur"],
+      "description": "ISO 4217 currency code"
+    }
+  },
+  "paymentFields": {
+    "payment_mode": {
+      "type": "enum",
+      "required": true,
+      "aliases": ["payment_mode", "paymentmode", "payment_method", "pay_mode", "payment_type"],
+      "allowedValues": [
+        "credit_card", "credit card",
+        "debit_card", "debit card",
+        "upi", "net_banking", "net banking", "netbanking",
+        "cod", "cash on delivery", "cash_on_delivery",
+        "wallet", "emi",
+        "bank_transfer", "bank transfer",
+        "paypal", "stripe",
+        "apple_pay", "apple pay",
+        "google_pay", "google pay", "gpay"
+      ],
+      "caseInsensitive": true,
+      "description": "Payment method used"
+    },
+    "payment_status": {
+      "type": "enum",
+      "required": false,
+      "aliases": ["payment_status", "pay_status", "txn_status", "transaction_status"],
+      "allowedValues": ["paid", "unpaid", "pending", "failed", "refunded", "partially_paid", "partially paid"],
+      "caseInsensitive": true,
+      "description": "Payment status"
+    },
+    "transaction_id": {
+      "type": "string",
+      "required": false,
+      "aliases": ["transaction_id", "txn_id", "payment_ref", "payment_id", "reference_number"],
+      "description": "Payment transaction reference"
+    }
+  },
+  "validCurrencies": [
+    "USD", "EUR", "GBP", "INR", "SGD", "AUD", "CAD", "JPY",
+    "CNY", "MYR", "AED", "HKD", "NZD", "CHF", "SEK", "NOK",
+    "DKK", "ZAR", "BRL", "MXN", "THB", "IDR", "PHP", "VND",
+    "KRW", "TWD", "PKR", "BDT", "LKR", "SAR", "QAR", "KWD",
+    "BHD", "OMR", "EGP", "NGN", "KES", "GHS", "TZS", "UGX"
+  ]
+}

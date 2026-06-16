@@ -1,0 +1,122 @@
+{
+  "SG": {
+    "name": "Singapore",
+    "phone": {
+      "digits": 8,
+      "startsWithAny": ["6", "8", "9"],
+      "pattern": "^[689]\\d{7}$",
+      "example": "91234567"
+    },
+    "countryCode": "+65",
+    "currency": "SGD",
+    "dateFormats": ["YYYY-MM-DD", "DD/MM/YYYY"]
+  },
+  "IN": {
+    "name": "India",
+    "phone": {
+      "digits": 10,
+      "startsWithAny": ["6", "7", "8", "9"],
+      "pattern": "^[6-9]\\d{9}$",
+      "example": "9876543210"
+    },
+    "countryCode": "+91",
+    "currency": "INR",
+    "dateFormats": ["DD/MM/YYYY", "DD-MM-YYYY", "YYYY-MM-DD"]
+  },
+  "US": {
+    "name": "United States",
+    "phone": {
+      "digits": 10,
+      "startsWithAny": ["2", "3", "4", "5", "6", "7", "8", "9"],
+      "pattern": "^[2-9]\\d{2}[2-9]\\d{6}$",
+      "example": "2025551234"
+    },
+    "countryCode": "+1",
+    "currency": "USD",
+    "dateFormats": ["MM/DD/YYYY", "YYYY-MM-DD"]
+  },
+  "GB": {
+    "name": "United Kingdom",
+    "phone": {
+      "digits": [10, 11],
+      "startsWithAny": ["1", "2", "3", "7"],
+      "pattern": "^[1237]\\d{8,9}$",
+      "example": "7911123456"
+    },
+    "countryCode": "+44",
+    "currency": "GBP",
+    "dateFormats": ["DD/MM/YYYY", "YYYY-MM-DD"]
+  },
+  "AU": {
+    "name": "Australia",
+    "phone": {
+      "digits": 9,
+      "startsWithAny": ["2", "3", "4", "7", "8"],
+      "pattern": "^[23478]\\d{8}$",
+      "example": "412345678"
+    },
+    "countryCode": "+61",
+    "currency": "AUD",
+    "dateFormats": ["DD/MM/YYYY", "YYYY-MM-DD"]
+  },
+  "MY": {
+    "name": "Malaysia",
+    "phone": {
+      "digits": [9, 10],
+      "startsWithAny": ["1", "3", "4", "6", "7", "8", "9"],
+      "pattern": "^[134-9]\\d{7,8}$",
+      "example": "123456789"
+    },
+    "countryCode": "+60",
+    "currency": "MYR",
+    "dateFormats": ["DD/MM/YYYY", "YYYY-MM-DD"]
+  },
+  "JP": {
+    "name": "Japan",
+    "phone": {
+      "digits": [10, 11],
+      "startsWithAny": ["1", "3", "4", "5", "6", "7", "8", "9"],
+      "pattern": "^[1-9]\\d{8,9}$",
+      "example": "9012345678"
+    },
+    "countryCode": "+81",
+    "currency": "JPY",
+    "dateFormats": ["YYYY-MM-DD", "YYYY/MM/DD"]
+  },
+  "DE": {
+    "name": "Germany",
+    "phone": {
+      "digits": [10, 11],
+      "startsWithAny": ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
+      "pattern": "^[1-9]\\d{8,9}$",
+      "example": "15123456789"
+    },
+    "countryCode": "+49",
+    "currency": "EUR",
+    "dateFormats": ["DD.MM.YYYY", "YYYY-MM-DD"]
+  },
+  "AE": {
+    "name": "United Arab Emirates",
+    "phone": {
+      "digits": 9,
+      "startsWithAny": ["2", "3", "4", "5", "6", "7", "9"],
+      "pattern": "^[2-7,9]\\d{7,8}$",
+      "example": "501234567"
+    },
+    "countryCode": "+971",
+    "currency": "AED",
+    "dateFormats": ["DD/MM/YYYY", "YYYY-MM-DD"]
+  },
+  "CA": {
+    "name": "Canada",
+    "phone": {
+      "digits": 10,
+      "startsWithAny": ["2", "3", "4", "5", "6", "7", "8", "9"],
+      "pattern": "^[2-9]\\d{2}[2-9]\\d{6}$",
+      "example": "6135551234"
+    },
+    "countryCode": "+1",
+    "currency": "CAD",
+    "dateFormats": ["YYYY-MM-DD", "DD/MM/YYYY"]
+  }
+}
