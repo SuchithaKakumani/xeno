@@ -2,7 +2,7 @@
 
 A scalable, enterprise-grade web platform for validating, cleaning, and processing international transaction datasets with intelligent country-specific rules.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-xeno--snowy--nu.vercel.app-6366f1?style=for-the-badge&logo=vercel&logoColor=white)](https://xeno-snowy-nu.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-xeno--suchithakakaumani--2038s--projects.vercel.app-6366f1?style=for-the-badge&logo=vercel&logoColor=white)](https://xeno-suchithakakaumani-2038s-projects.vercel.app)
 
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
