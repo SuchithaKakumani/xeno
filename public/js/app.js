@@ -25,6 +25,38 @@
 
   let selectedFile = null;
 
+  // ── Theme Toggle ─────────────────────────────────────────────
+  const themeToggle = document.getElementById('theme-toggle');
+  const THEME_KEY = 'xeno-theme';
+
+  function getPreferredTheme() {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored) return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+    // Notify particles.js about the theme change
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
+  }
+
+  // Apply stored theme immediately (before paint)
+  setTheme(getPreferredTheme());
+
+  themeToggle.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    setTheme(current === 'dark' ? 'light' : 'dark');
+  });
+
+  // Listen for OS-level theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (!localStorage.getItem(THEME_KEY)) {
+      setTheme(e.matches ? 'dark' : 'light');
+    }
+  });
+
   // ── File Selection ──────────────────────────────────────────────
   uploadZone.addEventListener('click', () => fileInput.click());
 
