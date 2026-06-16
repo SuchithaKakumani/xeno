@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — XenoValidator</title>
+  <meta name="description" content="Sign in or create an account to access your validation history and features.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="auth-body">
+  <!-- Animated Background Canvas -->
+  <canvas id="auth-canvas"></canvas>
+
+  <!-- Floating Orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="auth-layout">
+    <!-- Left Panel — Branding -->
+    <div class="auth-panel auth-brand-panel">
+      <div class="auth-brand-content">
+        <a href="/" class="auth-logo">
+          <div class="auth-logo-icon">
+            <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
+              <path d="M14 2L26 8V20L14 26L2 20V8L14 2Z" stroke="url(#authGrad)" stroke-width="2" fill="none"/>
+              <path d="M14 10L20 13V19L14 22L8 19V13L14 10Z" fill="url(#authGrad)" opacity="0.7"/>
+              <defs>
+                <linearGradient id="authGrad" x1="2" y1="2" x2="26" y2="26">
+                  <stop stop-color="#6366f1"/>
+                  <stop offset="1" stop-color="#06b6d4"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <span class="auth-logo-text">Xeno<span class="auth-logo-accent">Validator</span></span>
+        </a>
+
+        <div class="auth-brand-hero">
+          <h1 class="auth-brand-title">Validate smarter.<br>Ship faster.</h1>
+          <p class="auth-brand-subtitle">
+            Sign in to unlock your full validation history, download past reports, and manage all your data pipelines in one place.
+          </p>
+        </div>
+
+        <div class="auth-feature-list">
+          <div class="auth-feature-item">
+            <div class="auth-feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <span>Track all your validation runs</span>
+          </div>
+          <div class="auth-feature-item">
+            <div class="auth-feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </div>
+            <span>Re-download cleaned files anytime</span>
+          </div>
+          <div class="auth-feature-item">
+            <div class="auth-feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <span>10+ countries, 20+ validation rules</span>
+          </div>
+          <div class="auth-feature-item">
+            <div class="auth-feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+            </div>
+            <span>Chunked output for large datasets</span>
+          </div>
+        </div>
+
+        <div class="auth-brand-stats">
+          <div class="auth-stat">
+            <span class="auth-stat-num">100MB</span>
+            <span class="auth-stat-label">Max file size</span>
+          </div>
+          <div class="auth-stat-divider"></div>
+          <div class="auth-stat">
+            <span class="auth-stat-num">10+</span>
+            <span class="auth-stat-label">Countries</span>
+          </div>
+          <div class="auth-stat-divider"></div>
+          <div class="auth-stat">
+            <span class="auth-stat-num">&lt;2s</span>
+            <span class="auth-stat-label">Avg processing</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel — Auth Form -->
+    <div class="auth-panel auth-form-panel">
+      <div class="auth-form-wrapper">
+
+        <!-- Tab Switcher -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tab-login" data-mode="login">Sign In</button>
+          <button class="auth-tab" id="tab-register" data-mode="register">Create Account</button>
+          <div class="auth-tab-indicator" id="tab-indicator"></div>
+        </div>
+
+        <!-- Login Form -->
+        <div class="auth-form-section" id="form-login">
+          <div class="auth-form-header">
+            <h2 class="auth-form-title">Welcome back</h2>
+            <p class="auth-form-subtitle">Enter your credentials to continue</p>
+          </div>
+
+          <form id="login-form" class="auth-form" novalidate>
+            <div class="field-group">
+              <label class="field-label" for="login-email">Email Address</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </span>
+                <input type="email" id="login-email" class="field-input" placeholder="you@example.com" autocomplete="email" required>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <div class="field-label-row">
+                <label class="field-label" for="login-password">Password</label>
+              </div>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </span>
+                <input type="password" id="login-password" class="field-input" placeholder="••••••••" autocomplete="current-password" required>
+                <button type="button" class="field-toggle-pw" id="toggle-login-pw" aria-label="Toggle password visibility" tabindex="-1">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-eye-off" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="field-error" id="login-error" style="display:none;"></div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-auth" id="btn-login-submit">
+              <span class="btn-auth-text">Sign In</span>
+              <span class="btn-auth-spinner" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              </span>
+            </button>
+
+            <div class="auth-divider"><span>or continue without an account</span></div>
+
+            <a href="/" class="btn btn-ghost btn-block btn-auth-guest">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Continue as Guest
+            </a>
+          </form>
+        </div>
+
+        <!-- Register Form -->
+        <div class="auth-form-section" id="form-register" style="display:none;">
+          <div class="auth-form-header">
+            <h2 class="auth-form-title">Create your account</h2>
+            <p class="auth-form-subtitle">Start tracking your validation history</p>
+          </div>
+
+          <form id="register-form" class="auth-form" novalidate>
+            <div class="field-group">
+              <label class="field-label" for="reg-name">Full Name</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <input type="text" id="reg-name" class="field-input" placeholder="Rahul Sharma" autocomplete="name" required>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="reg-email">Email Address</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </span>
+                <input type="email" id="reg-email" class="field-input" placeholder="you@example.com" autocomplete="email" required>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="reg-password">Password</label>
+              <div class="field-input-wrap">
+                <span class="field-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </span>
+                <input type="password" id="reg-password" class="field-input" placeholder="Min 8 characters" autocomplete="new-password" required>
+                <button type="button" class="field-toggle-pw" id="toggle-reg-pw" aria-label="Toggle password visibility" tabindex="-1">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-eye-off" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+              <!-- Password Strength -->
+              <div class="pw-strength" id="pw-strength">
+                <div class="pw-strength-bar">
+                  <div class="pw-strength-fill" id="pw-fill"></div>
+                </div>
+                <span class="pw-strength-label" id="pw-label"></span>
+              </div>
+            </div>
+
+            <div class="field-error" id="reg-error" style="display:none;"></div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-auth" id="btn-reg-submit">
+              <span class="btn-auth-text">Create Account</span>
+              <span class="btn-auth-spinner" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                </span>
+            </button>
+
+            <div class="auth-divider"><span>or</span></div>
+
+            <a href="/" class="btn btn-ghost btn-block btn-auth-guest">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Continue as Guest
+            </a>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+</body>
+</html>

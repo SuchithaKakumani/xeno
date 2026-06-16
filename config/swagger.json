@@ -1,0 +1,345 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "XenoValidator API",
+    "version": "1.0.0",
+    "description": "API documentation for the XenoValidator Transaction Data Validation & Processing Platform."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local Development Server"
+    }
+  ],
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Rahul Sharma" },
+                  "email": { "type": "string", "example": "rahul.sharma@example.com" },
+                  "password": { "type": "string", "example": "Password123" }
+                },
+                "required": ["name", "email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" },
+                    "email": { "type": "string" },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid input or user already exists" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Log in an existing user",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "rahul.sharma@example.com" },
+                  "password": { "type": "string", "example": "Password123" }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logged in successfully, cookie token set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "name": { "type": "string" },
+                        "email": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "Log out the current user",
+        "tags": ["Authentication"],
+        "responses": {
+          "200": { "description": "Logged out successfully, cookie cleared" }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "summary": "Get current logged-in user profile",
+        "tags": ["Authentication"],
+        "responses": {
+          "200": {
+            "description": "Profile data retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "name": { "type": "string" },
+                        "email": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Not logged in" }
+        }
+      }
+    },
+    "/api/validate": {
+      "post": {
+        "summary": "Upload a CSV file for validation",
+        "tags": ["Validation"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "CSV, TSV, or TXT file to process"
+                  },
+                  "chunkSize": {
+                    "type": "integer",
+                    "default": 1000,
+                    "description": "Number of rows per chunk if file needs splitting"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Upload accepted, returns job information to poll progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jobId": { "type": "string", "format": "uuid" },
+                    "status": { "type": "string", "example": "pending" },
+                    "progress": { "type": "integer", "example": 0 }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Bad Request, e.g., missing file or unsupported format" }
+        }
+      }
+    },
+    "/api/validate/progress/{jobId}": {
+      "get": {
+        "summary": "Stream real-time processing progress of a validation job",
+        "tags": ["Validation"],
+        "description": "Establishes a Server-Sent Events (SSE) stream. Sends progress updates.",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events connection established. Content-Type: text/event-stream"
+          }
+        }
+      }
+    },
+    "/api/validate/history": {
+      "get": {
+        "summary": "Get list of previous validation runs for the logged-in user",
+        "tags": ["Validation"],
+        "responses": {
+          "200": {
+            "description": "Array of past jobs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "jobId": { "type": "string" },
+                      "filename": { "type": "string" },
+                      "sessionId": { "type": "string" },
+                      "timestamp": { "type": "string" },
+                      "summary": {
+                        "type": "object",
+                        "properties": {
+                          "totalRows": { "type": "integer" },
+                          "validRows": { "type": "integer" },
+                          "errorRows": { "type": "integer" },
+                          "warningRows": { "type": "integer" }
+                        }
+                      },
+                      "downloads": {
+                        "type": "object",
+                        "properties": {
+                          "cleanedFile": { "type": "string" },
+                          "report": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/validate/history/{jobId}": {
+      "delete": {
+        "summary": "Delete a past validation run from history",
+        "tags": ["Validation"],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Validation run deleted from history" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Job not found in history" }
+        }
+      }
+    },
+    "/api/countries": {
+      "get": {
+        "summary": "Get supported countries and phone verification rules",
+        "tags": ["Resources"],
+        "responses": {
+          "200": {
+            "description": "List of supported countries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": { "type": "string", "example": "SG" },
+                      "name": { "type": "string", "example": "Singapore" },
+                      "phoneDigits": { "type": "array", "items": { "type": "integer" }, "example": [8] },
+                      "example": { "type": "string", "example": "91234567" },
+                      "countryCode": { "type": "string", "example": "+65" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sample": {
+      "get": {
+        "summary": "Download a sample CSV file with realistic data (including intentional errors)",
+        "tags": ["Resources"],
+        "parameters": [
+          {
+            "name": "rows",
+            "in": "query",
+            "description": "Number of rows to generate",
+            "schema": { "type": "integer", "default": 25 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A CSV file attachment",
+            "content": {
+              "text/csv": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/download/{sessionId}/{filename}": {
+      "get": {
+        "summary": "Download a generated file (cleaned CSV, report JSON, or chunks ZIP)",
+        "tags": ["Resources"],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The requested file download" },
+          "404": { "description": "File not found" }
+        }
+      }
+    }
+  }
+}

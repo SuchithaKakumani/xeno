@@ -23,7 +23,18 @@
   const btnHeroSample = document.getElementById('btn-hero-sample');
   const toastContainer = document.getElementById('toast-container');
 
+  // Auth DOM References
+  const userAuthSection = document.getElementById('user-auth-section');
+  const userProfileSection = document.getElementById('user-profile-section');
+  const userDisplayName = document.getElementById('user-display-name');
+  const btnLogout = document.getElementById('btn-logout');
+  const navHistory = document.getElementById('nav-history');
+  const historySection = document.getElementById('history-section');
+  const historyTbody = document.getElementById('history-tbody');
+  const heroLoginBtn = document.getElementById('hero-login-btn');
+
   let selectedFile = null;
+  let currentUser = null;
 
   // ── Theme Toggle ─────────────────────────────────────────────
   const themeToggle = document.getElementById('theme-toggle');
@@ -131,48 +142,126 @@
     progressText.textContent = 'Uploading file...';
     resultsSection.style.display = 'none';
 
+    resetProgressSteps();
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('chunkSize', chunkSizeSelect.value);
 
     try {
-      // Simulate progress
-      let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += Math.random() * 15;
-        if (progress > 85) progress = 85;
-        progressBar.style.width = progress + '%';
-        if (progress > 40) progressText.textContent = 'Validating data...';
-        if (progress > 70) progressText.textContent = 'Generating output files...';
-      }, 300);
-
       const response = await fetch('/api/validate', {
         method: 'POST',
         body: formData,
       });
-
-      clearInterval(progressInterval);
 
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.error || 'Validation failed');
       }
 
-      progressBar.style.width = '100%';
-      progressText.textContent = 'Complete!';
+      const uploadResult = await response.json();
+      const jobId = uploadResult.jobId;
 
-      const data = await response.json();
+      // Subscribe to Server-Sent Events for real-time progress tracking
+      const eventSource = new EventSource(`/api/validate/progress/${jobId}`);
 
-      setTimeout(() => {
-        renderResults(data);
-        showToast('Validation complete!', 'success');
-      }, 500);
+      eventSource.onmessage = (event) => {
+        const job = JSON.parse(event.data);
+
+        if (job.error) {
+          eventSource.close();
+          progressBar.style.width = '0%';
+          progressText.textContent = 'Error: ' + job.error;
+          showToast(job.error, 'error');
+          btnValidate.disabled = false;
+          return;
+        }
+
+        // Update progress bar width
+        progressBar.style.width = job.progress + '%';
+
+        // Update step indicators
+        updateProgressSteps(job.status);
+
+        if (job.status === 'completed') {
+          eventSource.close();
+          progressText.textContent = 'Complete!';
+          setTimeout(() => {
+            renderResults(job.result);
+            showToast('Validation complete!', 'success');
+            btnValidate.disabled = false;
+            if (currentUser) {
+              loadHistory();
+            }
+          }, 500);
+        } else if (job.status === 'failed') {
+          eventSource.close();
+          progressBar.style.width = '0%';
+          progressText.textContent = 'Error: ' + (job.error || 'Failed');
+          showToast(job.error || 'Validation job failed', 'error');
+          btnValidate.disabled = false;
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        eventSource.close();
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Connection interrupted';
+        showToast('Lost connection to validation progress stream.', 'error');
+        btnValidate.disabled = false;
+      };
+
     } catch (err) {
       progressBar.style.width = '0%';
       progressText.textContent = 'Error: ' + err.message;
       showToast(err.message, 'error');
-    } finally {
       btnValidate.disabled = false;
+    }
+  }
+
+  function resetProgressSteps() {
+    const steps = ['step-upload', 'step-parse', 'step-validate', 'step-clean'];
+    steps.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.className = 'progress-step';
+    });
+    const uploadEl = document.getElementById('step-upload');
+    if (uploadEl) uploadEl.classList.add('active');
+    progressText.textContent = 'Uploading file...';
+  }
+
+  function updateProgressSteps(status) {
+    const stepUpload = document.getElementById('step-upload');
+    const stepParse = document.getElementById('step-parse');
+    const stepValidate = document.getElementById('step-validate');
+    const stepClean = document.getElementById('step-clean');
+
+    if (status === 'parsing') {
+      stepUpload.className = 'progress-step completed';
+      stepParse.className = 'progress-step active';
+      progressText.textContent = 'Parsing CSV file...';
+    } else if (status === 'validating') {
+      stepUpload.className = 'progress-step completed';
+      stepParse.className = 'progress-step completed';
+      stepValidate.className = 'progress-step active';
+      progressText.textContent = 'Validating records...';
+    } else if (status === 'cleaning') {
+      stepUpload.className = 'progress-step completed';
+      stepParse.className = 'progress-step completed';
+      stepValidate.className = 'progress-step completed';
+      stepClean.className = 'progress-step active';
+      progressText.textContent = 'Normalizing & cleaning...';
+    } else if (status === 'saving') {
+      stepUpload.className = 'progress-step completed';
+      stepParse.className = 'progress-step completed';
+      stepValidate.className = 'progress-step completed';
+      stepClean.className = 'progress-step active';
+      progressText.textContent = 'Saving cleaned output and splitting chunks...';
+    } else if (status === 'completed') {
+      stepUpload.className = 'progress-step completed';
+      stepParse.className = 'progress-step completed';
+      stepValidate.className = 'progress-step completed';
+      stepClean.className = 'progress-step completed';
     }
   }
 
@@ -487,4 +576,148 @@
       }
     });
   });
+
+  // ── User Authentication and Validation History ──────────────────
+
+  async function checkAuthStatus() {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        setLoggedInState(data.user);
+      } else {
+        setLoggedOutState();
+      }
+    } catch (err) {
+      setLoggedOutState();
+    }
+  }
+
+  function setLoggedInState(user) {
+    currentUser = user;
+    userDisplayName.textContent = user.name;
+    userAuthSection.style.display = 'none';
+    userProfileSection.style.display = 'flex';
+    navHistory.style.display = 'inline-block';
+    historySection.style.display = 'block';
+    if (heroLoginBtn) heroLoginBtn.style.display = 'none';
+    loadHistory();
+  }
+
+  function setLoggedOutState() {
+    currentUser = null;
+    userDisplayName.textContent = '';
+    userAuthSection.style.display = 'flex';
+    userProfileSection.style.display = 'none';
+    navHistory.style.display = 'none';
+    historySection.style.display = 'none';
+    historyTbody.innerHTML = '';
+    if (heroLoginBtn) heroLoginBtn.style.display = 'inline-flex';
+  }
+
+  // Logout handler
+  btnLogout.addEventListener('click', async () => {
+    try {
+
+      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      if (res.ok) {
+        setLoggedOutState();
+        showToast('Logged out successfully', 'info');
+      }
+    } catch (err) {
+      showToast('Logout failed', 'error');
+    }
+  });
+
+  // Load history from API
+  async function loadHistory() {
+    try {
+      const res = await fetch('/api/validate/history');
+      if (!res.ok) throw new Error('Could not retrieve validation history');
+      
+      const history = await res.json();
+      renderHistoryTable(history);
+    } catch (err) {
+      historyTbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--error)">${err.message}</td></tr>`;
+    }
+  }
+
+  function renderHistoryTable(items) {
+    if (items.length === 0) {
+      historyTbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">No validation history yet. Try validating a file!</td></tr>`;
+      return;
+    }
+
+    historyTbody.innerHTML = items.map(item => {
+      const date = new Date(item.timestamp).toLocaleString();
+      const s = item.summary;
+      
+      const badgeValid = `<span class="badge-valid-summary">${s.validRows.toLocaleString()} valid</span>`;
+      const badgeError = s.errorRows > 0 ? `<span class="badge-error-summary">${s.errorRows.toLocaleString()} errors</span>` : '';
+      const badgeWarn = s.warningRows > 0 ? `<span class="badge-warning-summary">${s.warningRows.toLocaleString()} warnings</span>` : '';
+      
+      const dlCleaned = `<a href="${item.downloads.cleanedFile}" class="btn btn-sm btn-outline" download style="margin-right:6px">Cleaned CSV</a>`;
+      const dlReport = `<a href="${item.downloads.report}" class="btn btn-sm btn-ghost" download>Report JSON</a>`;
+      
+      return `
+        <tr>
+          <td>${date}</td>
+          <td><code>${escapeHtml(item.filename)}</code></td>
+          <td>${s.totalRows.toLocaleString()}</td>
+          <td>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              ${badgeValid}
+              ${badgeError}
+              ${badgeWarn}
+            </div>
+          </td>
+          <td>
+            <div style="display:flex">
+              ${dlCleaned}
+              ${dlReport}
+            </div>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-icon btn-delete-history" data-job-id="${item.jobId}" title="Delete history record">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Attach delete handlers
+    historyTbody.querySelectorAll('.btn-delete-history').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const jobId = btn.dataset.jobId;
+        if (confirm('Are you sure you want to delete this validation run and all associated files?')) {
+          await deleteHistoryItem(jobId);
+        }
+      });
+    });
+  }
+
+  async function deleteHistoryItem(jobId) {
+    try {
+      const res = await fetch(`/api/validate/history/${jobId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to delete history record');
+      }
+
+      showToast('Validation run deleted successfully', 'success');
+      loadHistory();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  // Verify auth status on load
+  checkAuthStatus();
 })();

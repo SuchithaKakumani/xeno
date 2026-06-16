@@ -3,13 +3,17 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { v4: uuidv4 } = require('uuid');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const swaggerUi = require('swagger-ui-express');
 
-const { parseCSV, writeCSV } = require('./src/processors/csvProcessor');
-const { runValidation } = require('./src/validators/validationEngine');
-const { cleanData, generateReport } = require('./src/processors/dataCleaner');
-const { chunkData, createChunkZip } = require('./src/processors/fileChunker');
+const logger = require('./src/utils/logger');
+const requestLogger = require('./src/middleware/requestLogger');
+const { requireAuth, optionalAuth, JWT_SECRET } = require('./src/middleware/auth');
+const db = require('./src/utils/db');
+const jobRunner = require('./src/utils/jobRunner');
 const { getSupportedCountries } = require('./src/validators/phoneValidator');
+const swaggerDocument = require('./config/swagger.json');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,14 +27,19 @@ if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
 // Middleware
 app.use(express.json());
+app.use(cookieParser());
+app.use(requestLogger);
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Swagger Documentation API
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Multer config
 const storage = multer.diskStorage({
   destination: UPLOAD_DIR,
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, `${uuidv4()}${ext}`);
+    cb(null, `${require('uuid').v4()}${ext}`);
   },
 });
 
@@ -48,92 +57,198 @@ const upload = multer({
   },
 });
 
-// ─── API ROUTES ─────────────────────────────────────────────────────
+// ─── AUTHENTICATION ROUTES ──────────────────────────────────────────
+
+/**
+ * POST /api/auth/register
+ */
+app.post('/api/auth/register', async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'Name, email, and password are required' });
+  }
+
+  try {
+    const newUser = await db.createUser(name, email, password);
+    logger.info(`User registered successfully: ${email}`);
+    res.status(201).json(newUser);
+  } catch (err) {
+    logger.warn(`Registration failed for ${email}: ${err.message}`);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/auth/login
+ */
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  try {
+    const user = await db.authenticateUser(email, password);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    
+    // Set HTTP-Only Cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: 'strict',
+    });
+
+    logger.info(`User logged in: ${email}`);
+    res.json({ user });
+  } catch (err) {
+    logger.error(`Login error for ${email}: ${err.message}`);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ */
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('token');
+  logger.info('User logged out');
+  res.json({ message: 'Logged out successfully' });
+});
+
+/**
+ * GET /api/auth/me
+ */
+app.get('/api/auth/me', optionalAuth, (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+  res.json({ user: req.user });
+});
+
+// ─── VALIDATION ROUTES ──────────────────────────────────────────────
 
 /**
  * POST /api/validate
- * Upload and validate a CSV file.
+ * Upload a CSV and trigger validation job in background.
  */
-app.post('/api/validate', upload.single('file'), async (req, res) => {
+app.post('/api/validate', optionalAuth, upload.single('file'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const sessionId = uuidv4();
-    const sessionDir = path.join(OUTPUT_DIR, sessionId);
-    fs.mkdirSync(sessionDir, { recursive: true });
+    const userId = req.user ? req.user.id : null;
+    const job = jobRunner.createJob(userId, req.file.originalname);
+    
+    logger.info(`Starting validation job ${job.id} for file: ${req.file.originalname} (User: ${userId || 'Anonymous'})`);
 
-    // Parse CSV
-    const { headers, data } = await parseCSV(req.file.path);
+    // Run processing asynchronously
+    jobRunner.startJob(job.id, req.file.path, OUTPUT_DIR, {
+      chunkSize: req.body?.chunkSize,
+    });
 
-    if (data.length === 0) {
-      return res.status(400).json({ error: 'CSV file is empty (no data rows found)' });
-    }
-
-    // Validate
-    const validationResult = runValidation(data, headers);
-
-    // Clean
-    const cleaningResult = cleanData(validationResult.cleanedData, headers);
-
-    // Write cleaned CSV
-    const cleanedFilename = `validated_${path.parse(req.file.originalname).name}.csv`;
-    const cleanedPath = path.join(sessionDir, cleanedFilename);
-    await writeCSV(cleanedPath, headers, cleaningResult.data);
-
-    // Chunk if large
-    let chunkInfo = null;
-    const chunkSize = parseInt(req.body?.chunkSize) || 1000;
-
-    if (cleaningResult.data.length > chunkSize) {
-      const baseName = path.parse(req.file.originalname).name;
-      const chunks = await chunkData(headers, cleaningResult.data, sessionDir, baseName, chunkSize);
-      const zipPath = await createChunkZip(chunks, sessionDir, baseName);
-
-      chunkInfo = {
-        totalChunks: chunks.length,
-        chunkSize,
-        chunks: chunks.map(c => ({
-          filename: c.filename,
-          rowCount: c.rowCount,
-          downloadUrl: `/api/download/${sessionId}/${c.filename}`,
-        })),
-        zipDownloadUrl: `/api/download/${sessionId}/${path.basename(zipPath)}`,
-      };
-    }
-
-    // Generate report
-    const report = generateReport(validationResult, cleaningResult, chunkInfo);
-    const reportPath = path.join(sessionDir, 'validation_report.json');
-    fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-
-    // Clean up uploaded file
-    fs.unlinkSync(req.file.path);
-
-    // Response
-    res.json({
-      sessionId,
-      summary: validationResult.summary,
-      errors: validationResult.errors.slice(0, 500), // Cap at 500 for response size
-      warnings: validationResult.warnings.slice(0, 500),
-      totalErrors: validationResult.errors.length,
-      totalWarnings: validationResult.warnings.length,
-      cleaning: {
-        duplicatesRemoved: cleaningResult.duplicatesRemoved,
-        finalRowCount: cleaningResult.cleanedCount,
-      },
-      downloads: {
-        cleanedFile: `/api/download/${sessionId}/${cleanedFilename}`,
-        report: `/api/download/${sessionId}/validation_report.json`,
-      },
-      chunking: chunkInfo,
+    // Accept request and return jobId for polling
+    res.status(202).json({
+      jobId: job.id,
+      status: job.status,
+      progress: job.progress,
     });
   } catch (err) {
-    console.error('Validation error:', err);
+    logger.error('Upload error in /api/validate:', err);
     res.status(500).json({ error: err.message || 'Internal server error' });
   }
 });
+
+/**
+ * GET /api/validate/progress/:jobId
+ * Server-Sent Events stream for tracking file processing progress.
+ */
+app.get('/api/validate/progress/:jobId', (req, res) => {
+  const { jobId } = req.params;
+  const job = jobRunner.getJob(jobId);
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  // Set SSE Headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // Add client to job push registry
+  jobRunner.addClient(jobId, res);
+
+  // Remove connection on close
+  req.on('close', () => {
+    logger.debug(`Client disconnected from job stream: ${jobId}`);
+    if (job.clients) {
+      job.clients = job.clients.filter(c => c !== res);
+    }
+  });
+});
+
+/**
+ * GET /api/validate/history
+ * Get history of previous validation runs (Requires auth).
+ */
+app.get('/api/validate/history', requireAuth, (req, res) => {
+  try {
+    const history = db.getHistory(req.user.id);
+    res.json(history);
+  } catch (err) {
+    logger.error(`Error fetching history for ${req.user.email}:`, err);
+    res.status(500).json({ error: 'Could not fetch history' });
+  }
+});
+
+/**
+ * DELETE /api/validate/history/:jobId
+ * Delete a past validation run and its processed files (Requires auth).
+ */
+app.delete('/api/validate/history/:jobId', requireAuth, (req, res) => {
+  const { jobId } = req.params;
+  
+  try {
+    const deletedItem = db.deleteHistory(jobId, req.user.id);
+    if (!deletedItem) {
+      return res.status(404).json({ error: 'Job history item not found' });
+    }
+
+    // Clean up associated file directory
+    const sessionDir = path.join(OUTPUT_DIR, deletedItem.sessionId);
+    if (fs.existsSync(sessionDir)) {
+      fs.rmSync(sessionDir, { recursive: true, force: true });
+      logger.info(`Deleted physical files for session: ${deletedItem.sessionId}`);
+    }
+
+    logger.info(`History record deleted: ${jobId} (User: ${req.user.email})`);
+    res.json({ message: 'History record and files deleted successfully' });
+  } catch (err) {
+    logger.error(`Error deleting history for ${req.user.email}:`, err);
+    res.status(500).json({ error: 'Could not delete history item' });
+  }
+});
+
+// ─── STATIC PAGE ROUTES ─────────────────────────────────────────
+
+/**
+ * GET /login
+ * Serves the dedicated login / registration page.
+ */
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// ─── GENERAL API ROUTES ─────────────────────────────────────────────
 
 /**
  * GET /api/download/:sessionId/:filename
@@ -141,6 +256,12 @@ app.post('/api/validate', upload.single('file'), async (req, res) => {
  */
 app.get('/api/download/:sessionId/:filename', (req, res) => {
   const { sessionId, filename } = req.params;
+  
+  // Security check to prevent directory traversal
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return res.status(400).json({ error: 'Invalid file name' });
+  }
+
   const filePath = path.join(OUTPUT_DIR, sessionId, filename);
 
   if (!fs.existsSync(filePath)) {
@@ -256,6 +377,7 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: err.message });
   }
   if (err) {
+    logger.error(`Multer or custom error: ${err.message}`);
     return res.status(400).json({ error: err.message });
   }
   next();
@@ -265,12 +387,13 @@ app.use((err, req, res, next) => {
 
 if (!isVercel) {
   app.listen(PORT, () => {
-    console.log(`\n  ╔══════════════════════════════════════════╗`);
-    console.log(`  ║        XenoValidator is running!         ║`);
-    console.log(`  ║                                          ║`);
-    console.log(`  ║   Local:  http://localhost:${PORT}          ║`);
-    console.log(`  ║                                          ║`);
-    console.log(`  ╚══════════════════════════════════════════╝\n`);
+    logger.info(`\n  ╔══════════════════════════════════════════╗`);
+    logger.info(`  ║        XenoValidator is running!         ║`);
+    logger.info(`  ║                                          ║`);
+    logger.info(`  ║   Local:  http://localhost:${PORT}          ║`);
+    logger.info(`  ║   Docs:   http://localhost:${PORT}/api-docs     ║`);
+    logger.info(`  ║                                          ║`);
+    logger.info(`  ╚══════════════════════════════════════════╝\n`);
   });
 }
 

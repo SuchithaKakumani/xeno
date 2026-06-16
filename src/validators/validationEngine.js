@@ -335,4 +335,77 @@ function runValidation(data, headers) {
   };
 }
 
-module.exports = { runValidation, mapColumns };
+/**
+ * Runs validation asynchronously on a parsed dataset.
+ * Triggers progressCallback(current, total) periodically.
+ */
+async function runValidationAsync(data, headers, progressCallback) {
+  const { mappedFields, unmappedColumns } = mapColumns(headers);
+
+  const allErrors = [];
+  const allWarnings = [];
+  const cleanedData = [];
+  const seenOrderIds = new Set();
+  let duplicateCount = 0;
+
+  const orderIdCol = mappedFields['order_id'];
+  const chunkSize = 2000; // Process in chunks of 2,000 rows
+
+  for (let i = 0; i < data.length; i += chunkSize) {
+    const end = Math.min(i + chunkSize, data.length);
+    for (let j = i; j < end; j++) {
+      const row = data[j];
+      const rowIndex = j + 2; // +2 for 1-indexed + header row
+
+      // Duplicate order ID check
+      if (orderIdCol) {
+        const oid = String(row[orderIdCol] || '').trim();
+        if (oid && seenOrderIds.has(oid)) {
+          allWarnings.push({
+            row: rowIndex, field: orderIdCol, schemaField: 'order_id',
+            value: oid, type: 'warning', message: `Duplicate order ID: "${oid}"`,
+          });
+          duplicateCount++;
+        }
+        if (oid) seenOrderIds.add(oid);
+      }
+
+      const { errors, warnings, cleanedRow } = validateRow(row, mappedFields, rowIndex);
+      allErrors.push(...errors);
+      allWarnings.push(...warnings);
+      cleanedData.push(cleanedRow);
+    }
+
+    if (progressCallback) {
+      await progressCallback(end, data.length);
+    }
+    // Yield to the event loop
+    await new Promise(resolve => setImmediate(resolve));
+  }
+
+  const summary = {
+    totalRows: data.length,
+    validRows: data.length - new Set(allErrors.map(e => e.row)).size,
+    errorRows: new Set(allErrors.map(e => e.row)).size,
+    warningRows: new Set(allWarnings.map(w => w.row)).size,
+    totalErrors: allErrors.length,
+    totalWarnings: allWarnings.length,
+    duplicateOrderIds: duplicateCount,
+    mappedFields: Object.keys(mappedFields).length,
+    unmappedColumns,
+    fieldMapping: Object.entries(mappedFields).map(([schema, csv]) => ({
+      schemaField: schema,
+      csvColumn: csv,
+    })),
+  };
+
+  return {
+    summary,
+    errors: allErrors,
+    warnings: allWarnings,
+    cleanedData,
+    headers,
+  };
+}
+
+module.exports = { runValidation, runValidationAsync, mapColumns };

@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+uploads
+output
+data
+logs
+tests
+.git
+.gitignore
+README.md
+implementation_plan.md
+task.md
+walkthrough.md

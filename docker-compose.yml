@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  xenovalidator:
+    build: .
+    container_name: xeno-validator-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=xeno-super-secret-key-12345
+    volumes:
+      - ./uploads:/usr/src/app/uploads
+      - ./output:/usr/src/app/output
+      - ./data:/usr/src/app/data
+      - ./logs:/usr/src/app/logs
+    restart: unless-stopped
