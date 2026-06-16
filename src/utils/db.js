@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const isVercel = process.env.VERCEL === '1';
+const DATA_DIR = isVercel ? path.join(require('os').tmpdir(), 'data') : path.join(__dirname, '..', '..', 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
 
