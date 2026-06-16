@@ -4,7 +4,6 @@ A scalable, enterprise-grade web platform for validating, cleaning, and processi
 
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue)
 
 ## Features
 
@@ -124,7 +123,3 @@ The validator auto-detects columns by matching headers to known aliases. A typic
 order_id,order_date,customer_name,customer_phone,country_code,product_id,product_name,quantity,unit_price,total_amount,payment_mode,payment_status
 ORD-001,2024-03-15,Rahul Sharma,9876543210,IN,SKU-001,Wireless Mouse,2,29.99,59.98,UPI,Paid
 ```
-
-## License
-
-MIT

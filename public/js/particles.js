@@ -18,7 +18,7 @@
     speed: 0.3,
     connectionDistance: 150,
     connectionOpacity: 0.06,
-    colors: ['rgba(99, 102, 241, 0.4)', 'rgba(6, 182, 212, 0.4)', 'rgba(129, 140, 248, 0.3)'],
+    colors: ['rgba(37, 99, 235, 0.4)', 'rgba(59, 130, 246, 0.4)', 'rgba(29, 78, 216, 0.3)'],
   };
 
   function resize() {
@@ -73,7 +73,7 @@
           ctx.beginPath();
           ctx.moveTo(particles[i].x, particles[i].y);
           ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `rgba(99, 102, 241, ${opacity})`;
+          ctx.strokeStyle = `rgba(37, 99, 235, ${opacity})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
         }
